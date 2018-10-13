@@ -18,9 +18,23 @@ def generateKey():
     return int(key,2)
 
 #Identical to generate key, but does not change it to an int
-#Pads the string to 10 bits to ensure length determinability
 def generateNonce():
     return bin(generateKey())[2:]
+
+#Generates an 8 bit nonce for the NS protocol's verification step 5
+def generateTestNonce():
+    nonce = ''
+    for i in range(8):
+        nonce += str(random.randint(0,1))
+
+    return nonce
+
+#Can be called to give the user instructions on what actions they may take
+def printInstructions():
+    print("Type 'Talkto' to speak with another user\n"+
+        "Type 'List' to list other users connected to the server\n"+
+        "Type 'Wait' to wait for another user to connect to you\n"+
+        "Enter 'Quit' to exit")
 
 #The client-side part of DH, check server.py for explanation on function
 def diffie(kdc, PRIVATE_KEY):
@@ -83,12 +97,17 @@ def needhamSchroeder(kdc):
         conn.send(bPacket.encode())
 
         testingNonce = conn.recv(1024).decode()
+        print("Nonce received: ", testingNonce)
         nonce = DH.runDecryption(testingNonce, sessionKey)
+        print("Nonce after decryption: ", nonce)
 
         #Performing our arbitrary f(x) on the nonce, subtract 1 from nonce
-        returningNonce = bin(int(nonce, 2)-1)[2:]
+        returningNonce = bin(int(nonce, 2)-1)[2:].zfill(8)
+        print("Nonce after BIN: ", returningNonce)
         encryptedReturn = DH.runEncryption(returningNonce, sessionKey)
+        print("Nonce after encryption: ", encryptedReturn)
         conn.send(encryptedReturn.encode())
+        
         print("Sent verification to other user. Waiting for confirmation.")
 
         result = conn.recv(1024).decode()
@@ -96,6 +115,7 @@ def needhamSchroeder(kdc):
             '''
             This section is functionally identical to my homework 1 chatroom implementation
             Once the two are verified, they chat securely through this until one decides to quit
+            This chat session uses the session key as it's encryption
             '''
             while True:
                 data = conn.recv(1024).decode()
@@ -107,13 +127,13 @@ def needhamSchroeder(kdc):
                     print("Client has ended the session.")
                     break
 
-                print ("Encrypted text received: " + str(data))
+                #print ("Encrypted text received: " + str(data))
 
                 #Decrypts the encrypted text from the user
-                decryptedBinary = DH.runDecryption(encryptedList, sessionKey)
+                decryptedBinary = DH.runDecryption(data, sessionKey)
                 output = DH.text_from_bits(decryptedBinary)
 
-                print("Decrypted text: " + output + "\n")
+                print("\nDecrypted text: " + output)
             
                 #Now it is the server's turn to send an encrypted message to the user!
                 inputString = input("Enter the message you wish to encrypt:\n -> ")
@@ -131,12 +151,15 @@ def needhamSchroeder(kdc):
 
                     #Sends the encrypted text back to the user
                     conn.send(message.encode())
+            conn.close()
+        #If Needham schroeder fails, then exit from the server entirely.
         else:
             print("Unable to verify. Exiting server.\n\n")
             conn.close()
             sys.exit()        
-        conn.close()
 
+        print("\n\nWelcome back to the main server.")
+        printInstructions()
         return
 
 def receiveConnection(host, port):
@@ -156,13 +179,15 @@ def receiveConnection(host, port):
     aID = decrypted[10:142]
 
     #Generate a new nonce to test A with, expecting nonce-1 back
-    testingNonce = generateNonce()
+    testingNonce = generateTestNonce()
     encryptedNonce = DH.runEncryption(testingNonce, sessionKey)
     mySocket.send(encryptedNonce.encode())
 
     #Waiting for A to process
     aVal = mySocket.recv(1024).decode()
     result = DH.runDecryption(aVal, sessionKey)
+
+    #Printing to the user what the other returned
     print("Expected result: ", int(testingNonce,2)-1)
     print("Result from user: ", int(result,2))
 
@@ -194,12 +219,12 @@ def receiveConnection(host, port):
                 print("Server has ended the session.")
                 quit(1)
 
-            print ('Encrypted text received from server: ' + data)
+            #print ('Encrypted text received from server: ' + data)
 
             #Takes the encrypted binary and turns it back to plaintext
             output = DH.text_from_bits(DH.runDecryption(data, sessionKey))
 
-            print ('Decrypted text: ' + output + "\n")
+            print ('\nDecrypted text: ' + output)
         mySocket.close()
     else:
         print("Unable to verifiy the indentity of the other user. Exiting server.\n")
@@ -228,11 +253,7 @@ def main():
 
     print(soc.recv(1024).decode("utf8"))
 
-    print("Type 'Talkto' to speak with another user\n"+
-        "Type 'List' to list other users connected to the server\n"+
-        "Type 'Wait' to wait for another user to connect to you\n"+
-        "Enter 'Quit' to exit")
-
+    printInstructions()
 
     while True:
         message = input(" -> ").lower()
