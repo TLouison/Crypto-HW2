@@ -104,6 +104,8 @@ def needhamSchroeder(conn, connectionInfo):
     #Sending the encrypted package to A
     conn.send(aPackage.encode())
     print("NS-Safe package sent.")
+    sender = getUserByID(aName)
+    connections[getUserByID(bName)][1].send(("INCOMING|" + sender[0] + ":" + "1234").encode())
 
 
 #Prints out all available users that the requester can talk to
@@ -122,7 +124,7 @@ def printUsers(conn, user):
 def start_server():
     #Setting host and port to local and non-used values, respectively
     host = "127.0.0.1"
-    port = 6666
+    port = 7005
 
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # SO_REUSEADDR flag tells the kernel to reuse a local socket in TIME_WAIT state, without waiting for its natural timeout to expire
@@ -190,12 +192,6 @@ def client_thread(connection, ip, port):
             #Splitting the data into useful chunks
             connectionInfo = client_input.split("|")[1]
             needhamSchroeder(connection, connectionInfo)
-
-            #Sending the information on connecting to the sender to the receiver
-            sender = getUserByID(connectionInfo[0:4])
-            receiver = getUserByID(connectionInfo[4:8])
-            connections[receiver][1].send(("INCOMING|" + sender[0] + ":" + sender[1]).encode("utf8"))
-
             connection.sendall("-".encode("utf8"))
         else:
             print("Processed result: {}".format(client_input))
