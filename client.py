@@ -8,6 +8,7 @@ import sys
 
 KDC_SHARED_KEY = None # Key generated from the diffie-hellman that KDC knows
 MY_ID = None
+_PORT_NUMBER = 5005
 
 #Generates a key for the newly connected user
 def generateKey():
@@ -81,7 +82,7 @@ def needhamSchroeder(kdc):
         #Now setting up this client as the host of a connection with the client
         mySocket = socket.socket()
         try:
-            mySocket.bind(("127.0.0.1",5000))
+            mySocket.bind(("127.0.0.1",_PORT_NUMBER))
         except:
             print("Bind failed. Error : " + str(sys.exc_info()))
             sys.exit()
@@ -160,7 +161,7 @@ def needhamSchroeder(kdc):
 
 def receiveConnection(host, port):
     mySocket = socket.socket()
-    mySocket.connect(("127.0.0.1",5000))
+    mySocket.connect(("127.0.0.1",_PORT_NUMBER))
 
     print("Connected to another user.")
 

@@ -85,21 +85,13 @@ def needhamSchroeder(conn, connectionInfo):
 
     #Creates the "envelope" that contains the Session Key and A's ID
     #This is encrypted with B's key
-    bEnvelopeContents = desHelper.splitBinary(sessionKey + aID + nonce2)
-    bEnvelope = desHelper.runEncryption(bEnvelopeContents, 
+    bEnvelope = desHelper.runEncryption(sessionKey + aID + nonce2, 
                                         connections[getUserByID(bName)][2])
-    bEnvelope = desHelper.rebuildString(bEnvelope)
 
     #Creates the main "package" that contains the session key, B's id, the nonce, and the envelope
     #This is encrypted with A's key
-    print("keyLen: ", len(sessionKey))
-    print("bIDLen: ", len(bID))
-    print("Nonce2LEn: ", len(nonce2))
-    print("bEnvelopeLen: ", len(bEnvelope))
-    aPackageContents = desHelper.splitBinary(sessionKey + bID + nonce2 + bEnvelope)
-    aPackage = desHelper.runEncryption(aPackageContents, 
+    aPackage = desHelper.runEncryption(sessionKey + bID + nonce2 + bEnvelope, 
                                         connections[getUserByID(aName)][2])
-    aPackage = desHelper.rebuildString(aPackage)
 
     #Sending the encrypted package to A
     conn.send(aPackage.encode())
@@ -178,6 +170,8 @@ def client_thread(connection, ip, port):
         client_input = connection.recv(1024).decode("utf8")
         print("Processing the input received from client {:}".format(connections[user][0]))
 
+        #Processing input from the client
+        #If they want to exit, close their connection
         if "quit" in client_input:
             print("Client is requesting to quit")
             connection.close()
@@ -185,9 +179,13 @@ def client_thread(connection, ip, port):
             #Removes the user from the dictionary of actively connected clients
             del connections[user]
             is_active = False
+        
+        #Lists out the users currently connected to the server
         elif "list" in client_input:
             printUsers(connection, user)
             connection.sendall("-".encode("utf8"))
+
+        #Allows the user to securely talk to 
         elif "talkto" in client_input:
             #Splitting the data into useful chunks
             connectionInfo = client_input.split("|")[1]
