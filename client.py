@@ -97,15 +97,11 @@ def needhamSchroeder(kdc):
         conn.send(bPacket.encode())
 
         testingNonce = conn.recv(1024).decode()
-        print("Nonce received: ", testingNonce)
         nonce = DH.runDecryption(testingNonce, sessionKey)
-        print("Nonce after decryption: ", nonce)
 
         #Performing our arbitrary f(x) on the nonce, subtract 1 from nonce
         returningNonce = bin(int(nonce, 2)-1)[2:].zfill(8)
-        print("Nonce after BIN: ", returningNonce)
         encryptedReturn = DH.runEncryption(returningNonce, sessionKey)
-        print("Nonce after encryption: ", encryptedReturn)
         conn.send(encryptedReturn.encode())
         
         print("Sent verification to other user. Waiting for confirmation.")
