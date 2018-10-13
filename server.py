@@ -1,7 +1,7 @@
 '''
 DISCLAIMER: This code was based on this:
     https://kuntalchandra.wordpress.com/2017/08/23/python-socket-programming-server-client-application-using-threads/
-It has been modified to fit our purposes with the Diffie-Hellman key exchange
+It has been modified heavily to fit our purposes with the Diffie-Hellman key exchange
 and Needham-Schroeder, however the basic socket server from this code was 
 taken directly from the above linked website.
 '''

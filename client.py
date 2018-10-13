@@ -2,8 +2,7 @@ import socket
 import time
 from threading import Thread
 import DES
-import desHelper
-import pickle
+import desHelper as DH
 import random
 import sys
 
@@ -19,7 +18,7 @@ def generateKey():
     return int(key,2)
 
 #Identical to generate key, but does not change it to an int
-#Pads the string to 10 bits to ensure determinability
+#Pads the string to 10 bits to ensure length determinability
 def generateNonce():
     return bin(generateKey())[2:]
 
@@ -53,20 +52,17 @@ def needhamSchroeder(kdc):
         #by inputting 'talkto'
 
         aPackage = kdc.recv(1024).decode("utf8")
-        
-        packageSplit = desHelper.splitBinary(aPackage)
-        decodedA = desHelper.runDecryption(packageSplit, KDC_SHARED_KEY)
-        aPlaintext = desHelper.rebuildString(decodedA)
+
+        decodedA = DH.runDecryption(aPackage, KDC_SHARED_KEY)
 
         #gathering the sessionkey and other things from string
-        sessionKey = aPlaintext[:10]
-        bID = aPlaintext[10:130]
-        bID = desHelper.text_from_bits(bID)
-        Nonce2 = aPlaintext[130:140]
+        sessionKey = decodedA[:10]
+        bID = decodedA[10:130]
+        bID = DH.text_from_bits(bID)
+        Nonce2 = decodedA[130:140]
 
         #This is the still encrypted package with B's needed info inside
-        bPacket = aPlaintext[140:]
-        print(aPlaintext)
+        bPacket = decodedA[140:]
 
         #Now setting up this client as the host of a connection with the client
         mySocket = socket.socket()
@@ -82,17 +78,134 @@ def needhamSchroeder(kdc):
         conn, addr = mySocket.accept()
         print ("Connection from: " + str(addr))
 
-        
+        #Now that we are connected to B, we verify they are correct by sending them
+        #their encrypted envelope.
+        conn.send(bPacket.encode())
 
-    return 1
-    # decodedA = 
+        testingNonce = conn.recv(1024).decode()
+        nonce = DH.runDecryption(testingNonce, sessionKey)
+
+        #Performing our arbitrary f(x) on the nonce, subtract 1 from nonce
+        returningNonce = bin(int(nonce, 2)-1)[2:]
+        encryptedReturn = DH.runEncryption(returningNonce, sessionKey)
+        conn.send(encryptedReturn.encode())
+        print("Sent verification to other user. Waiting for confirmation.")
+
+        result = conn.recv(1024).decode()
+        if result == "verified":
+            '''
+            This section is functionally identical to my homework 1 chatroom implementation
+            Once the two are verified, they chat securely through this until one decides to quit
+            '''
+            while True:
+                data = conn.recv(1024).decode()
+
+                #Conditionals to decide when to kill the server
+                if not data:
+                    break
+                if data == 'q':
+                    print("Client has ended the session.")
+                    break
+
+                print ("Encrypted text received: " + str(data))
+
+                #Decrypts the encrypted text from the user
+                decryptedBinary = DH.runDecryption(encryptedList, sessionKey)
+                output = DH.text_from_bits(decryptedBinary)
+
+                print("Decrypted text: " + output + "\n")
+            
+                #Now it is the server's turn to send an encrypted message to the user!
+                inputString = input("Enter the message you wish to encrypt:\n -> ")
+
+                #If the server wants to quit, type q to break the loop
+                if inputString == "q":
+                    conn.send('q'.encode())
+                    break
+                else:
+                    #Converting inital string to binary
+                    inputString = DH.text_to_bits(inputString)
+
+                    #Takes the binary representation of our text, splits it into 8 bit chunks, and encrypts it
+                    message = DH.runEncryption(inputString, sessionKey)
+
+                    #Sends the encrypted text back to the user
+                    conn.send(message.encode())
+        else:
+            print("Unable to verify. Exiting server.\n\n")
+            conn.close()
+            sys.exit()        
+        conn.close()
+
+        return
 
 def receiveConnection(host, port):
     mySocket = socket.socket()
     mySocket.connect(("127.0.0.1",5000))
 
-    print("Connected to this fucker")
-    return
+    print("Connected to another user.")
+
+    #Now we will receive the info from the other user to get the session key
+    encryptedInfo = mySocket.recv(1024).decode("utf8")
+
+    #We decrypt that package to gather our session key and the ID of A
+    decrypted = DH.runDecryption(encryptedInfo, KDC_SHARED_KEY)
+
+    #Only take the session key and id out, nonce is no longer useful
+    sessionKey = decrypted[:10]
+    aID = decrypted[10:142]
+
+    #Generate a new nonce to test A with, expecting nonce-1 back
+    testingNonce = generateNonce()
+    encryptedNonce = DH.runEncryption(testingNonce, sessionKey)
+    mySocket.send(encryptedNonce.encode())
+
+    #Waiting for A to process
+    aVal = mySocket.recv(1024).decode()
+    result = DH.runDecryption(aVal, sessionKey)
+    print("Expected result: ", int(testingNonce,2)-1)
+    print("Result from user: ", int(result,2))
+
+    if int(result,2) == int(testingNonce,2)-1:
+        print("Needham-Schroeder complete. Other user verified. Opening secure chatroom.")
+        mySocket.send("verified".encode())
+        
+        while True:
+            inputString = input("\nEnter the message you wish to encrypt:\n -> ")
+
+            #Exit the server if the command is 'q'
+            if inputString == 'q':
+                break
+
+            #Converting inital string to binary
+            inputString = DH.text_to_bits(inputString)
+
+            #Takes the binary representation of our text, splits it into 8 bit chunks, and encrypts it
+            message = DH.runEncryption(inputString, sessionKey)
+
+            #Sends the encrypted text to the server
+            mySocket.send(message.encode())
+
+            print("Waiting for server response...")
+
+            data = str(mySocket.recv(1024).decode())
+
+            if data == 'q':
+                print("Server has ended the session.")
+                quit(1)
+
+            print ('Encrypted text received from server: ' + data)
+
+            #Takes the encrypted binary and turns it back to plaintext
+            output = DH.text_from_bits(DH.runDecryption(data, sessionKey))
+
+            print ('Decrypted text: ' + output + "\n")
+        mySocket.close()
+    else:
+        print("Unable to verifiy the indentity of the other user. Exiting server.\n")
+        mySocket.send("no".encode())
+        mySocket.close()
+        sys.exit()
 
 
 def main():
@@ -147,7 +260,6 @@ def main():
             while notConnected:
                 #Receiving server messages and checking their contents
                 serverMessage = soc.recv(1024).decode("utf8")
-                print(serverMessage)
                 if "INCOMING" in serverMessage:
                     aIP = serverMessage.split("|")
                     aPort = aIP[1]
@@ -157,12 +269,6 @@ def main():
                     #Delay a second to ensure the other client has time to set up socket
                     time.sleep(.5)
                     receiveConnection(aIP, aPort)
-                    # try:
-                    #     Thread(target=receiveConnection, args=(aIP, aPort)).start()
-                    # except:
-                    #     print("Thread did not start.")
-                    #     traceback.print_exc()
-                print("loop reset")
 
         if soc.recv(1024).decode("utf8") == "-":
             pass        # null operation

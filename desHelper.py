@@ -1,26 +1,30 @@
 import DES
 
 #Helper functions to run the encryption on strings longer than 8 bits
-def runEncryption(inputList, mainkey):
+def runEncryption(input, mainkey):
     encryptedBinary = []
+
+    plaintextList = splitBinary(input)
 
     newDES = DES.toyDES()
 
-    for string in inputList:
+    for string in plaintextList:
         encryptedBinary.append( newDES.encryptText(string, mainkey) )
 
-    return encryptedBinary
+    return rebuildString(encryptedBinary)
 
 #Same as above but for decryption
-def runDecryption(encryptedList, mainkey):
+def runDecryption(input, mainkey):
     decryptedBinary = []
+
+    encryptedList = splitBinary(input)
 
     newDES = DES.toyDES()
 
     for string in encryptedList:
         decryptedBinary.append( newDES.decryptText(string, mainkey) )
 
-    return decryptedBinary
+    return rebuildString(decryptedBinary)
 
 
 #======================================================================================================
