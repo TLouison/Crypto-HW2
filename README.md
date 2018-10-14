@@ -28,6 +28,8 @@ The largest challenge for me by far was the networking aspect of this homework. 
  
 I couldn't find a way to resolve these issues, so if the client freezes during Diffie-Hellman, or crashes during Needham-Schroeder, please ```Ctrl+C``` and try it again. It will work the majority of the time.
 
+Finally, the largest implementation challenge I faced was with connecting A to B without having the KDC intervene in some way. While I know it is incorrect, I have the KDC send the connection information to B so that it can connect to A. In no way should the KDC be sending this information to B, but it was an implementation challenge I was unable to overcome. This does not change the security of the implementation though, as the attacker could not know the shared secret key of B, so they wouldn't get any meaningful information from intercepting this information. The lack of change in security is the only reason I felt implementing this in this way was acceptable, but in the future, and with more network programming experience, I would investigate a different way of approaching this issue.
+
 ## Computational Diffie-Hellman
 ### Assumptions
 There were a few assumptions I made during the implementation of Diffie-Hellman:
