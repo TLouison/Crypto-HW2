@@ -18,6 +18,8 @@ The instructions displayed on the terminal tell you what commands can be issued,
 - ```'wait'``` causes the client to sit and wait for a user to request a connection to them.
 - ```'quit'``` cleanly exits the server.
 
+The easiest way to test the program is to run the server, then two clients. On the first client, type the ```'wait'``` command. On the second, type ```'talkto 0001'```. This will have the second client attempt to connect with the first.
+
 ## Implementation challenges
 The largest challenge for me by far was the networking aspect of this homework. I do not have a large amount of experience in network programming, as I have not taken NetProg or OpSys. Due to this, I began my multi-user server by using code found at this website: 
  ```https://kuntalchandra.wordpress.com/2017/08/23/python-socket-programming-server-client-application-using-threads/```
