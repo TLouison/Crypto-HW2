@@ -8,6 +8,7 @@ import sys
 
 KDC_SHARED_KEY = None # Key generated from the diffie-hellman that KDC knows
 MY_ID = None
+_CHAT_IP = "127.0.0.1"
 _PORT_NUMBER = 5005
 
 #Generates a key for the newly connected user
@@ -82,7 +83,7 @@ def needhamSchroeder(kdc):
         #Now setting up this client as the host of a connection with the client
         mySocket = socket.socket()
         try:
-            mySocket.bind(("127.0.0.1",_PORT_NUMBER))
+            mySocket.bind((_CHAT_IP,_PORT_NUMBER))
         except:
             print("Bind failed. Error : " + str(sys.exc_info()))
             sys.exit()
@@ -109,6 +110,7 @@ def needhamSchroeder(kdc):
 
         result = conn.recv(1024).decode()
         if result == "verified":
+            print("Successful verification. Waiting for message...\n")
             '''
             This section is functionally identical to my homework 1 chatroom implementation
             Once the two are verified, they chat securely through this until one decides to quit
@@ -161,7 +163,7 @@ def needhamSchroeder(kdc):
 
 def receiveConnection(host, port):
     mySocket = socket.socket()
-    mySocket.connect(("127.0.0.1",_PORT_NUMBER))
+    mySocket.connect((_CHAT_IP,_PORT_NUMBER))
 
     print("Connected to another user.")
 

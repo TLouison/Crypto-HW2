@@ -74,7 +74,6 @@ def needhamSchroeder(conn, connectionInfo):
     #converting id's to binary and padding them to be length
     aID = desHelper.text_to_bits(getUserByID(aName)[0]+':'+str(getUserByID(aName)[1]))
     bID = desHelper.text_to_bits(getUserByID(bName)[0]+':'+str(getUserByID(bName)[1]))
-    print("BID LENGTH: ", len(bID))
     nonce1 = connectionInfo[8:]
 
     #Create a new nonce to prevent replay attacks
@@ -103,7 +102,7 @@ def needhamSchroeder(conn, connectionInfo):
 #Prints out all available users that the requester can talk to
 #If no other users are connected, it will tell the requester they are lonely
 def printUsers(conn, user):
-    userString = "Connected users:\n"
+    userString = "\nConnected users:\n"
     for person in connections.keys():
         if person != user:
             userString += "UserID: {:}\n".format(connections[person][0])
